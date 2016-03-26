@@ -60,6 +60,7 @@ func IsValidHookContentType(name string) bool {
 type HookEvents struct {
 	Create bool `json:"create"`
 	Push   bool `json:"push"`
+        PullRequest bool `json:"pull_request"`
 }
 
 // HookEvent represents events that will delivery hook.
@@ -157,6 +158,12 @@ func (w *Webhook) HasPushEvent() bool {
 		(w.ChooseEvents && w.HookEvents.Push)
 }
 
+// HasPullRequestEvent returns true if hook enabled pull request event
+func (w *Webhook) HasPullRequestEvent() bool {
+        return w.SendEverything ||
+                (w.ChooseEvents && w.HookEvents.PullRequest)
+}
+
 func (w *Webhook) EventsArray() []string {
 	events := make([]string, 0, 2)
 	if w.HasCreateEvent() {
@@ -165,6 +172,9 @@ func (w *Webhook) EventsArray() []string {
 	if w.HasPushEvent() {
 		events = append(events, "push")
 	}
+        if w.HasPullRequestEvent() {
+                events = append(events, "pull_request")
+        }
 	return events
 }
 
@@ -278,6 +288,7 @@ type HookEventType string
 const (
 	HOOK_EVENT_CREATE HookEventType = "create"
 	HOOK_EVENT_PUSH   HookEventType = "push"
+        HOOK_EVENT_PULLREQUEST  HookEventType = "pull_request"
 )
 
 // HookRequest represents hook task request information.
@@ -423,6 +434,10 @@ func PrepareWebhooks(repo *Repository, event HookEventType, p api.Payloader) err
 			if !w.HasPushEvent() {
 				continue
 			}
+                case HOOK_EVENT_PULLREQUEST:
+                        if !w.HasPullRequestEvent() {
+                                continue
+                        }
 		}
 
 		// Use separate objects so modifcations won't be made on payload on non-Gogs type hooks.
